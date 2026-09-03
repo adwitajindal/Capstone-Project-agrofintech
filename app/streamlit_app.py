@@ -175,7 +175,7 @@ import requests
 # CONFIGURATION
 # =========================================================
 
-API_URL = "https://smitten-slick-deserving.ngrok-free.dev"
+API_URL = "https://smitten-slick-deserving.ngrok-free.dev/predict"
 
 st.set_page_config(
     page_title="AgroFinTech",
