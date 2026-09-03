@@ -168,14 +168,20 @@
 #     except Exception as e:
 #         st.error(f"Could not connect to FastAPI.\n\n{e}")
 
+import sys
+from pathlib import Path
+
 import streamlit as st
-import requests
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from prediction import predict
 
 # =========================================================
 # CONFIGURATION
 # =========================================================
-
-API_URL = "https://smitten-slick-deserving.ngrok-free.dev/predict"
 
 st.set_page_config(
     page_title="AgroFinTech",
@@ -1378,7 +1384,7 @@ with predict_col2:
             }
 
             # -----------------------------------------
-            # API REQUEST
+            # LOCAL MODEL PREDICTION
             # -----------------------------------------
 
             try:
@@ -1387,23 +1393,11 @@ with predict_col2:
                     "🤖 Analyzing agricultural and financial risk..."
                 ):
 
-                    response = requests.post(
-                        API_URL,
-                        json=payload,
-                        timeout=60
-                    )
+                    prediction = predict(payload)
 
+                result = {"Prediction": prediction}
 
-                # -------------------------------------
-                # SUCCESS
-                # -------------------------------------
-
-                if response.status_code == 200:
-
-                    result = response.json()
-
-
-                    st.html("""
+                st.html("""
                     <div class="result-wrapper">
 
                         <div class="result-heading">
@@ -1418,80 +1412,42 @@ with predict_col2:
                     """)
 
 
-                    prediction = result.get("Prediction", result)
-                    loan_prediction = prediction.get("Loan_Approval")
-                    risk_prediction = prediction.get("Risk_Level")
+                loan_prediction = prediction.get("Loan_Approval")
+                risk_prediction = prediction.get("Risk_Level")
 
-                    loan_status = {
-                        0: "Approved",
-                        1: "Rejected"
-                    }.get(loan_prediction, str(loan_prediction))
+                loan_status = {
+                    0: "Approved",
+                    1: "Rejected"
+                }.get(loan_prediction, str(loan_prediction))
 
-                    risk_status = {
-                        0: "Low",
-                        1: "Medium",
-                        2: "High"
-                    }.get(risk_prediction, str(risk_prediction))
+                risk_status = {
+                    0: "Low",
+                    1: "Medium",
+                    2: "High"
+                }.get(risk_prediction, str(risk_prediction))
 
-                    if loan_status == "Approved":
-                        st.success(f"### 🟢 Loan: {loan_status}")
-                    else:
-                        st.error(f"### 🔴 Loan: {loan_status}")
-
-                    if risk_status == "High":
-                        st.error(f"### 🔴 Risk Level: {risk_status}")
-                    elif risk_status == "Medium":
-                        st.warning(f"### 🟡 Risk Level: {risk_status}")
-                    else:
-                        st.success(f"### 🟢 Risk Level: {risk_status}")
-
-
-                    # ---------------------------------
-                    # DETAILS
-                    # ---------------------------------
-
-                    with st.expander(
-                        "📋 View Prediction Details"
-                    ):
-
-                        st.json(result)
-
-
-                # -------------------------------------
-                # API ERROR
-                # -------------------------------------
-
+                if loan_status == "Approved":
+                    st.success(f"### 🟢 Loan: {loan_status}")
                 else:
+                    st.error(f"### 🔴 Loan: {loan_status}")
 
-                    st.error(
-                        f"❌ Prediction failed\n\n"
-                        f"{response.text}"
-                    )
-
-
-            # -----------------------------------------
-            # CONNECTION ERROR
-            # -----------------------------------------
-
-            except requests.exceptions.ConnectionError:
-
-                st.error(
-                    "❌ Could not connect to FastAPI.\n\n"
-                    "Please make sure your FastAPI server "
-                    "is running on port 8000."
-                )
+                if risk_status == "High":
+                    st.error(f"### 🔴 Risk Level: {risk_status}")
+                elif risk_status == "Medium":
+                    st.warning(f"### 🟡 Risk Level: {risk_status}")
+                else:
+                    st.success(f"### 🟢 Risk Level: {risk_status}")
 
 
-            # -----------------------------------------
-            # TIMEOUT
-            # -----------------------------------------
+                # ---------------------------------
+                # DETAILS
+                # ---------------------------------
 
-            except requests.exceptions.Timeout:
+                with st.expander(
+                    "📋 View Prediction Details"
+                ):
 
-                st.error(
-                    "⏳ The prediction request timed out. "
-                    "Please try again."
-                )
+                    st.json(result)
 
 
             # -----------------------------------------
